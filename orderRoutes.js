@@ -1,7 +1,7 @@
 constiddlewareiddlewarec/routes/orderRoutes.js
 const express = require("express");
-const { createOrder, getUserOrders, updateOrderStatus } = require("../controllers/orderController");
-const { authMiddleware } = require("../authMiddleware");
+const { createOrder, getUserOrders, updateOrderStatus } = require(".orderController");
+const { authMiddleware } = require("./authMiddleware");
 
 const router = express.Router();
 
