@@ -1,5 +1,5 @@
-// src/controllers/orderController.js
-const Order = require("../models/Order");
+Ordercontrollers/orderController.js
+const Order = require("../Order");
 
 // Create new order
 exports.createOrder = async (req, res) => {
