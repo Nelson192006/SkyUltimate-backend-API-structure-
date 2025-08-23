@@ -1,10 +1,9 @@
-// src/index.js
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
-const userRoutes = require("./routes/userRoutes");
-const orderRoutes = require("./routes/orderRoutes");
+const userRoutes = require("./userRoutes");     // ✅ No folder
+const orderRoutes = require("./orderRoutes");   // ✅ No folder
 
 dotenv.config();
 
@@ -21,13 +20,13 @@ app.use("/api/orders", orderRoutes);
 // MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-          useUnifiedTopology: true,
-            })
-              .then(() => {
-                  console.log("✅ MongoDB connected");
-                      app.listen(PORT, () =>
-                            console.log(`🚀 SkyUltimate API running at http://localhost:${PORT}`)
-                                );
-                                  })
-                                    .catch((err) => console.error("❌ MongoDB connection error:", err));
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    app.listen(PORT, () =>
+      console.log(`🚀 SkyUltimate API running at http://localhost:${PORT}`)
+    );
+  })
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
