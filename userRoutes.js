@@ -1,13 +1,16 @@
-getProfileerllersstes/userRoutes.js
 const express = require("express");
-const { registerUser, loginUser, getProfile } = require("../contmiddlewaret { authMiddleware } = require("../authMiddleware");
+const { registerUser, loginUser, getProfile } = require("../controllers/userController");
+const { authMiddleware } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// Register
-router.post("/register", registerUserregisterUser
+// Register a new user
+router.post("/register", registerUser);
+
+// Login
 router.post("/login", loginUser);
-loginUserle (protected)
+
+// Get user profile (protected)
 router.get("/profile", authMiddleware, getProfile);
 
 module.exports = router;
