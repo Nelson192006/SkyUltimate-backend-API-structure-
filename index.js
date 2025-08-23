@@ -15,6 +15,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// ✅ Root route for Render testing
+app.get("/", (req, res) => {
+  res.send("SkyUltimate API is running ✅");
+});
+
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
