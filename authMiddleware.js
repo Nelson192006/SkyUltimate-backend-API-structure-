@@ -1,5 +1,5 @@
-userss jwt = require("jsonwebtoken");
-const User = require("./user");
+const jwt = require("jsonwebtoken");
+const User = require("./User"); // ✅ make sure filename matches your model (capital U)
 
 const protect = async (req, res, next) => {
   let token;
@@ -11,14 +11,20 @@ const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // attach user to request (excluding password)
       req.user = await User.findById(decoded.id).select("-password");
+
+      if (!req.user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
       next();
     } catch (error) {
+      console.error("JWT error:", error.message);
       res.status(401).json({ message: "Not authorized, token failed" });
     }
-  }
-
-  if (!token) {
+  } else {
     res.status(401).json({ message: "Not authorized, no token" });
   }
 };
