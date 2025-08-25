@@ -3,8 +3,9 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
-const userRoutes = require("./userRoutes");
-const orderRoutes = require("./orderRoutes");
+// import routes (must exist in root)
+const userRoutes = require("./userRoutes.js");
+const orderRoutes = require("./orderRoutes.js");
 
 dotenv.config();
 
@@ -21,8 +22,8 @@ app.get("/", (req, res) => {
 });
 
 // Routes
-app.use("/api/users", userRoutes);
-app.use("/api/orders", orderRoutes);
+if (userRoutes) app.use("/api/users", userRoutes);
+if (orderRoutes) app.use("/api/orders", orderRoutes);
 
 // MongoDB connection
 mongoose
