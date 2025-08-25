@@ -1,4 +1,4 @@
-user User = require("./User"); // make sure user.js is in the same folder
+user User = require("./User");
 const jwt = require("jsonwebtoken");
 
 // Generate JWT
