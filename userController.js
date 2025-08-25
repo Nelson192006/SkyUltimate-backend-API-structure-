@@ -1,4 +1,4 @@
-user User = require("./User");
+const User = require("./User");
 const jwt = require("jsonwebtoken");
 
 // Generate JWT
