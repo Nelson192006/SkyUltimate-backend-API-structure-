@@ -1,13 +1,19 @@
-const mongoose = require("mongoose");
-
 const orderSchema = new mongoose.Schema(
   {
-    customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    agent: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // match controller
+    items: [
+      {
+        name: String,
+        quantity: Number,
+        price: Number,
+      },
+    ],
+    deliveryAddress: { type: String, required: true },
+    paymentMethod: { type: String, enum: ["Cash", "Card", "Bank Transfer"], required: true },
     status: {
       type: String,
-      enum: ["Awaiting Payment", "In Transit", "Delivered", "Paid"],
-      default: "Awaiting Payment",
+      enum: ["Pending", "Awaiting Payment", "In Transit", "Delivered", "Paid"],
+      default: "Pending",
     },
     price: Number,
   },
