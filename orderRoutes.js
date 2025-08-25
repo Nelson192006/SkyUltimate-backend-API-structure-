@@ -1,17 +1,33 @@
-constiddlewareiddlewarec/routes/orderRoutes.js
+// orderRoutes.js
 const express = require("express");
-const { createOrder, getUserOrders, updateOrderStatus } = require(".orderController");
-const { authMiddleware } = require("./authMiddleware");
-
 const router = express.Router();
 
-// Create order
-router.post("/", authMiddleware, createOrder);
+const {
+  createOrder,
+  getOrders,
+  getOrderById,
+  updateOrderStatus,
+  deleteOrder,
+} = require("./orderController");
 
-// Get user orders
-router.get("/", authMiddleware, getUserOrders);
+// @route   POST /orders
+// @desc    Create a new order
+router.post("/", createOrder);
 
-// Update order status
-router.put("/:id", authMiddleware, updateOrderStatus);
+// @route   GET /orders
+// @desc    Get all orders
+router.get("/", getOrders);
+
+// @route   GET /orders/:id
+// @desc    Get order by ID
+router.get("/:id", getOrderById);
+
+// @route   PUT /orders/:id
+// @desc    Update order status
+router.put("/:id", updateOrderStatus);
+
+// @route   DELETE /orders/:id
+// @desc    Delete order
+router.delete("/:id", deleteOrder);
 
 module.exports = router;
