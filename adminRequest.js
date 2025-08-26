@@ -1,17 +1,13 @@
-const express = require('express');
-const router = express.Router();
-const adminRequestModel = require('./adminRequest');
-const authMiddleware = require('./auth');
+const mongoose = require("mongoose");
 
-router.post('/', authMiddleware, async (req, res) => {
-    const { type, reason, requestedBy } = req.body;
-    const request = await adminRequestModel.create({ type, reason, requestedBy });
-    res.json(request);
-});
+const adminRequestSchema = new mongoose.Schema(
+  {
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
+    actionType: { type: String, enum: ["Suspend", "Delete"], required: true },
+    reason: { type: String, required: true },
+    status: { type: String, enum: ["Pending", "Approved", "Denied"], default: "Pending" },
+  },
+  { timestamps: true }
+);
 
-router.get('/', authMiddleware, async (req, res) => {
-    const requests = await adminRequestModel.find().populate('requestedBy', 'fullName role');
-    res.json(requests);
-});
-
-module.exports = router;
+module.exports = mongoose.model("adminrequest", adminRequestSchema);
