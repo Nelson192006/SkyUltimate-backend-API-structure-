@@ -1,7 +1,7 @@
 // orderController.js
 const Order = require("./orderModel");
 const User = require("./User");
-const Settings = require("./Settings");
+const Settings = require("./settings");
 
 // simple price helper (replace with your real logic)
 const computePrice = (items = []) => {
