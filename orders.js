@@ -1,6 +1,6 @@
-const express = require('express');
+const = require('express');
 const router = express.Router();
-const Order = require('./order');      // lowercase
+const order = require('./order');      // lowercase
 const Settings = require('./settings'); // lowercase
 const Payout = require('./payout');     // lowercase
 const authMiddleware = require('./middleware/auth');
