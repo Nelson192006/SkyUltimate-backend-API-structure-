@@ -1,41 +1,38 @@
-const = require('express');
+const express = require('express');
 const router = express.Router();
-const order = require('./order');      // lowercase
-const Settings = require('./settings'); // lowercase
-const Payout = require('./payout');     // lowercase
+const Order = require('./order'); // lowercase
+const Settings = require('./settings');
+const Payout = require('./payout');
 const authMiddleware = require('./middleware/auth');
 
-// Customer confirms payment
+// Confirm payment
 router.patch('/:id/confirm-payment', authMiddleware, async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
-
     order.status = 'PaymentConfirmed';
     await order.save();
     res.json({ message: 'Payment confirmed' });
 });
 
-// Customer confirms pickup
+// Confirm pickup
 router.patch('/:id/confirm-pickup', authMiddleware, async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
-
     order.status = 'PickedUp';
     await order.save();
     res.json({ message: 'Pickup confirmed' });
 });
 
-// Customer confirms delivery
+// Confirm delivery
 router.patch('/:id/confirm-delivery', authMiddleware, async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const settings = await Settings.get();
     order.status = 'Delivered';
-    order.agentRevenue = order.pricePaid * settings.commissionRateAgent; // Only Agent revenue
+    order.agentRevenue = order.pricePaid * settings.commissionRateAgent;
     await order.save();
 
-    // Create payout for agent
     if (order.agent) {
         await Payout.create({
             agent: order.agent,
@@ -43,10 +40,7 @@ router.patch('/:id/confirm-delivery', authMiddleware, async (req, res) => {
         });
     }
 
-    res.json({
-        message: 'Delivery confirmed',
-        agentRevenue: order.agentRevenue
-    });
+    res.json({ message: 'Delivery confirmed', agentRevenue: order.agentRevenue });
 });
 
 module.exports = router;
