@@ -1,33 +1,29 @@
 // orderRoutes.js
 const express = require("express");
 const router = express.Router();
-
+const { protect } = require("./authMiddleware");
+const { allowRoles } = require("./roleMiddleware");
 const {
+  calcPrice,
   createOrder,
-  getOrders,
-  getOrderById,
-  updateOrderStatus,
-  deleteOrder,
+  confirmPayment,
+  claimOrder,
+  confirmPickedUp,
+  confirmDelivered,
+  rateAgent,
 } = require("./orderController");
 
-// @route   POST /orders
-// @desc    Create a new order
-router.post("/", createOrder);
+// Customer
+router.post("/calc-price", protect, allowRoles("Customer"), calcPrice);
+router.post("/", protect, allowRoles("Customer"), createOrder);
+router.post("/:id/rate", protect, allowRoles("Customer"), rateAgent);
 
-// @route   GET /orders
-// @desc    Get all orders
-router.get("/", getOrders);
+// Admin / SuperAdmin
+router.put("/:id/confirm-payment", protect, allowRoles("Admin", "SuperAdmin"), confirmPayment);
 
-// @route   GET /orders/:id
-// @desc    Get order by ID
-router.get("/:id", getOrderById);
-
-// @route   PUT /orders/:id
-// @desc    Update order status
-router.put("/:id", updateOrderStatus);
-
-// @route   DELETE /orders/:id
-// @desc    Delete order
-router.delete("/:id", deleteOrder);
+// Agent
+router.post("/:id/claim", protect, allowRoles("Agent"), claimOrder);
+router.put("/:id/pickup", protect, allowRoles("Agent"), confirmPickedUp);
+router.put("/:id/deliver", protect, allowRoles("Agent"), confirmDelivered);
 
 module.exports = router;
