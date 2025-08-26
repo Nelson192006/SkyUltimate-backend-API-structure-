@@ -4,11 +4,14 @@ const User = require("./User");
 const Settings = require("./Settings");
 
 // simple price helper (replace with your real logic)
-function computePrice(items = []) {
+const computePrice = (items = []) => {
   if (!Array.isArray(items) || items.length === 0) return 1500; // base
-  const sum = items.reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+  const sum = items.reduce(
+    (acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 1)),
+    0
+  );
   return Math.max(1500, sum); // never below base
-}
+};
 
 // POST /api/orders/calc-price
 const calcPrice = async (req, res) => {
@@ -20,8 +23,8 @@ const calcPrice = async (req, res) => {
       finalPrice: price,
       superAdminBankDetails: settings.bankDetails,
     });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -47,8 +50,8 @@ const createOrder = async (req, res) => {
       order,
       superAdminBankDetails: settings.bankDetails,
     });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -60,12 +63,12 @@ const confirmPayment = async (req, res) => {
     order.status = "PaymentConfirmed";
     await order.save();
     return res.json({ message: "Payment confirmed", order });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// POST /api/orders/:id/claim   (Agent) first-come-first-served
+// POST /api/orders/:id/claim   (Agent)
 const claimOrder = async (req, res) => {
   try {
     const updated = await Order.findOneAndUpdate(
@@ -75,8 +78,8 @@ const claimOrder = async (req, res) => {
     );
     if (!updated) return res.status(409).json({ message: "Job already taken or not ready" });
     return res.json({ message: "Order claimed", order: updated });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -89,8 +92,8 @@ const confirmPickedUp = async (req, res) => {
     order.status = "EnRouteToDelivery";
     await order.save();
     return res.json({ message: "Pickup confirmed", order });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -104,15 +107,16 @@ const confirmDelivered = async (req, res) => {
     order.status = "Completed";
     await order.save();
 
-    // add commission to agent's pendingPayout
     const settings = await Settings.get();
     const agent = await User.findById(req.user.id);
-    agent.pendingPayout += Math.round(order.finalPrice * settings.commissionRateAgent);
-    await agent.save();
+    if (agent) {
+      agent.pendingPayout += Math.round(order.finalPrice * settings.commissionRateAgent);
+      await agent.save();
+    }
 
     return res.json({ message: "Order delivered", order });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -129,18 +133,35 @@ const rateAgent = async (req, res) => {
     order.agentComment = comment;
     await order.save();
 
-    // update agent aggregate
     if (order.agent) {
       const agent = await User.findById(order.agent);
-      const total = agent.ratingAverage * agent.ratingCount + Number(rating);
-      agent.ratingCount += 1;
-      agent.ratingAverage = total / agent.ratingCount;
-      await agent.save();
+      if (agent) {
+        const total = agent.ratingAverage * agent.ratingCount + Number(rating);
+        agent.ratingCount += 1;
+        agent.ratingAverage = total / agent.ratingCount;
+        await agent.save();
+      }
     }
 
     return res.json({ message: "Thanks for rating!", order });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// PUT /api/orders/:id/update-status  (Admin or SuperAdmin)
+const updateStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
+    return res.status(200).json({ message: "Order updated successfully", order: updatedOrder });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -152,21 +173,5 @@ module.exports = {
   confirmPickedUp,
   confirmDelivered,
   rateAgent,
-};                                                                                try {
-                                                                                    const { status } = req.body;
-
-                                                                                        const updatedOrder = await Order.findByIdAndUpdate(
-                                                                                              req.params.id,
-                                                                                                    { status },
-                                                                                                          { new: true }
-                                                                                                              );
-
-                                                                                                                  if (!updatedOrder) {
-                                                                                                                        return res.status(404).json({ message: "Order not found" });
-                                                                                                                            }
-
-                                                                                                                                res.status(200).json({ message: "Order updated successfully", order: updatedOrder });
-                                                                                                                                  } catch (error) {
-                                                                                                                                      res.status(500).json({ message: "Server error", error: error.message });
-                                                                                                                                        }
-                                                                                                                                        };
+  updateStatus,
+};
