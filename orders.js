@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Order = require('./Order');
-const Settings = require('./Settings');
-const Payout = require('./Payout');
+const Order = require('./order');      // lowercase
+const Settings = require('./settings'); // lowercase
+const Payout = require('./payout');     // lowercase
 const authMiddleware = require('./middleware/auth');
 
 // Customer confirms payment
