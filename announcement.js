@@ -1,17 +1,12 @@
-const express = require('express');
-const router = express.Router();
-const announcementModel = require('./announcement');
-const authMiddleware = require('./auth');
+const mongoose = require("mongoose");
 
-router.post('/', authMiddleware, async (req, res) => {
-    const { title, message } = req.body;
-    const announcement = await announcementModel.create({ title, message });
-    res.json(announcement);
-});
+const announcementSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    isActive: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
 
-router.get('/', authMiddleware, async (req, res) => {
-    const announcements = await announcementModel.find();
-    res.json(announcements);
-});
-
-module.exports = router;
+module.exports = mongoose.model("announcement", announcementSchema);
