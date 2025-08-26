@@ -1,3 +1,5 @@
+// index.js
+
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -6,12 +8,13 @@ const cors = require("cors");
 // Load environment variables
 dotenv.config();
 
+// Import routes (all lowercase filenames)
 const userRoutes = require("./userRoutes");
-const orderRoutes = require("./orderRoutes");
-const payoutRoutes = require("./payouts");
-const announcementRoutes = require("./announcements");
-const adminRequestRoutes = require("./adminRequests");
-const settingsRoutes = require("./settingsRoutes");
+const orderRoutes = require("./order");          // lowercase
+const payoutRoutes = require("./payout");        // lowercase
+const announcementRoutes = require("./announcement"); // lowercase
+const adminRequestRoutes = require("./adminRequest"); // lowercase
+const settingsRoutes = require("./settingsRoutes");   // lowercase
 
 const app = express();
 
@@ -35,17 +38,11 @@ app.get("/", (req, res) => {
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI;
 mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log("✅ MongoDB connected");
-    // Start server only after DB connection
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () =>
-      console.log(`🚀 Server running on port ${PORT}`)
-    );
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
   .catch((error) => {
     console.error("❌ MongoDB connection error:", error.message);
