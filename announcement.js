@@ -1,16 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const announcementModel = require('./announcement'); // lowercase
-const authMiddleware = require('./middleware/auth');
+const announcementModel = require('./announcement');
+const authMiddleware = require('./auth');
 
-// Create announcement
 router.post('/', authMiddleware, async (req, res) => {
     const { title, message } = req.body;
     const announcement = await announcementModel.create({ title, message });
     res.json(announcement);
 });
 
-// Get all announcements
 router.get('/', authMiddleware, async (req, res) => {
     const announcements = await announcementModel.find();
     res.json(announcements);
