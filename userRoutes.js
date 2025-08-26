@@ -1,16 +1,15 @@
+// userRoutes.js
 const express = require("express");
-const { registerUser, loginUser, getProfile } = require("./userController.js"); 
-const { protect } = require("./authMiddleware.js"); // add .js explicitly
-
 const router = express.Router();
+const { protect } = require("./authMiddleware");
+const { allowRoles } = require("./roleMiddleware");
+const { registerUser, loginUser, getProfile, updateMyBank, setAgentAvailability } = require("./userController");
 
-// Register
 router.post("/register", registerUser);
-
-// Login
 router.post("/login", loginUser);
 
-// Profile (protected)
 router.get("/profile", protect, getProfile);
+router.put("/me/bank", protect, updateMyBank);
+router.put("/agent/availability", protect, allowRoles("Agent"), setAgentAvailability);
 
 module.exports = router;
