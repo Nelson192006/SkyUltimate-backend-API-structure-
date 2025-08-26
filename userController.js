@@ -1,95 +1,108 @@
+// userController.js
 const User = require("./User");
+const Settings = require("./Settings");
 const jwt = require("jsonwebtoken");
 
-// Generate JWT
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
+const normalizeRole = (r) => {
+  if (!r) return "Customer";
+  const s = String(r).toLowerCase();
+  if (s === "customer") return "Customer";
+  if (s === "agent") return "Agent";
+  if (s === "admin") return "Admin";
+  if (s === "superadmin" || s === "super-admin" || s === "super_admin") return "SuperAdmin";
+  return "Customer";
 };
 
-// @desc Register new user
-// @route POST /api/users/register
+const generateToken = (id, role) =>
+  jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "30d" });
+
+// POST /api/users/register
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    let { name, email, password, role } = req.body;
+    role = normalizeRole(role);
 
-    // Check if user already exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: "User already exists" });
+
+    // role gating
+    if (role === "Admin") {
+      const settings = await Settings.get();
+      if (!settings.adminRegistrationEnabled) {
+        return res.status(403).json({ message: "Admin registration is currently disabled" });
+      }
+    }
+    if (role === "SuperAdmin") {
+      const count = await User.countDocuments();
+      if (count > 0) {
+        return res.status(403).json({ message: "SuperAdmin can only be created for the first user" });
+      }
     }
 
-    // Create user
     const user = await User.create({ name, email, password, role });
-
-    if (user) {
-      res.status(201).json({
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user.id),
-      });
-    } else {
-      res.status(400).json({ message: "Invalid user data" });
-    }
-  } catch (error) {
-    console.error("Error in registerUser:", error.message);
-    res.status(500).json({ message: "Server error" });
+    return res.status(201).json({
+      message: "Registered",
+      user: { _id: user.id, name: user.name, email: user.email, role: user.role },
+      token: generateToken(user.id, user.role),
+    });
+  } catch (e) {
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
-// @desc Login user
-// @route POST /api/users/login
+// POST /api/users/login
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
+    const { email, password, role } = req.body; // role optional
     const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: "Invalid email or password" });
+    if (user.isSuspended) return res.status(403).json({ message: "Account suspended" });
 
-    if (user && (await user.matchPassword(password))) {
-      res.json({
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user.id),
-      });
-    } else {
-      res.status(401).json({ message: "Invalid email or password" });
+    const ok = await user.matchPassword(password);
+    if (!ok) return res.status(401).json({ message: "Invalid email or password" });
+
+    if (role && normalizeRole(role) !== user.role) {
+      return res.status(401).json({ message: "Role mismatch for this account" });
     }
-  } catch (error) {
-    console.error("Error in loginUser:", error.message);
-    res.status(500).json({ message: "Server error" });
+
+    return res.json({
+      message: "Login successful",
+      user: { _id: user.id, name: user.name, email: user.email, role: user.role },
+      token: generateToken(user.id, user.role),
+    });
+  } catch (e) {
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
-// @desc Get user profile
-// @route GET /api/users/profile
-// @access Private
+// GET /api/users/profile
 const getProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).select("-password");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
 
-    if (user) {
-      res.json({
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      });
-    } else {
-      res.status(404).json({ message: "User not found" });
-    }
-  } catch (error) {
-    console.error("Error in getProfile:", error.message);
-    res.status(500).json({ message: "Server error" });
+// PUT /api/users/me/bank
+const updateMyBank = async (req, res) => {
+  const { bankName, accountNumber, accountHolderName, phone } = req.body || {};
+  const user = await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  if (bankName || accountNumber || accountHolderName) {
+    user.bankDetails = { bankName, accountNumber, accountHolderName };
   }
+  if (phone) user.phone = phone;
+
+  await user.save();
+  res.json({ message: "Profile updated" });
 };
 
-module.exports = {
-  registerUser,
-  loginUser,
-  getProfile,
+// PUT /api/users/agent/availability
+const setAgentAvailability = async (req, res) => {
+  if (req.user.role !== "Agent") return res.status(403).json({ message: "Only agents can toggle availability" });
+  const { online } = req.body;
+  const updated = await User.findByIdAndUpdate(req.user.id, { isAvailable: !!online }, { new: true });
+  res.json({ online: updated.isAvailable });
 };
+
+module.exports = { registerUser, loginUser, getProfile, updateMyBank, setAgentAvailability };
