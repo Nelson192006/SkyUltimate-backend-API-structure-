@@ -1,18 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const AdminRequest = require('./adminRequestModel'); // lowercase
+const adminRequestModel = require('./adminRequest'); // lowercase
 const authMiddleware = require('./middleware/auth');
 
-// Create request
+// Create admin request
 router.post('/', authMiddleware, async (req, res) => {
     const { type, reason, requestedBy } = req.body;
-    const request = await AdminRequest.create({ type, reason, requestedBy });
+    const request = await adminRequestModel.create({ type, reason, requestedBy });
     res.json(request);
 });
 
-// Get all requests
+// Get all admin requests
 router.get('/', authMiddleware, async (req, res) => {
-    const requests = await AdminRequest.find().populate('requestedBy', 'fullName role');
+    const requests = await adminRequestModel.find().populate('requestedBy', 'fullName role');
     res.json(requests);
 });
 
