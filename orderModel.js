@@ -1,21 +1,38 @@
+// orderModel.js
+const mongoose = require("mongoose");
+
+const itemSchema = new mongoose.Schema(
+  {
+    name: String,
+    quantity: Number,
+    price: Number, // optional (if you precompute)
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // match controller
-    items: [
-      {
-        name: String,
-        quantity: Number,
-        price: Number,
-      },
-    ],
-    deliveryAddress: { type: String, required: true },
-    paymentMethod: { type: String, enum: ["Cash", "Card", "Bank Transfer"], required: true },
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    agent: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    items: [itemSchema],
+    pickupAddress: String,
+    deliveryAddress: String,
+    paymentMethod: { type: String, enum: ["Cash", "Card", "Bank Transfer"], default: "Bank Transfer" },
     status: {
       type: String,
-      enum: ["Pending", "Awaiting Payment", "In Transit", "Delivered", "Paid"],
-      default: "Pending",
+      enum: [
+        "PendingPayment",        // after price calc, awaiting admin confirm
+        "PaymentConfirmed",      // admin confirms, job can be claimed
+        "EnRouteToPickup",
+        "EnRouteToDelivery",
+        "Completed",
+        "Cancelled",
+      ],
+      default: "PendingPayment",
     },
-    price: Number,
+    finalPrice: { type: Number, default: 0 },
+    agentRating: { type: Number, min: 1, max: 5 },
+    agentComment: String,
   },
   { timestamps: true }
 );
