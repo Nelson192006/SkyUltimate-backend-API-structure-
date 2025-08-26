@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Order = require('./order'); // lowercase
+const Order = require('./order'); // root file
 const Settings = require('./settings');
 const Payout = require('./payout');
-const authMiddleware = require('./middleware/auth');
+const authMiddleware = require('./auth');
 
 // Confirm payment
 router.patch('/:id/confirm-payment', authMiddleware, async (req, res) => {
@@ -34,10 +34,7 @@ router.patch('/:id/confirm-delivery', authMiddleware, async (req, res) => {
     await order.save();
 
     if (order.agent) {
-        await Payout.create({
-            agent: order.agent,
-            amount: order.agentRevenue
-        });
+        await Payout.create({ agent: order.agent, amount: order.agentRevenue });
     }
 
     res.json({ message: 'Delivery confirmed', agentRevenue: order.agentRevenue });
