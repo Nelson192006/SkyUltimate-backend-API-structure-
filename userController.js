@@ -1,6 +1,6 @@
 // userController.js
 const User = require("./User");
-const Settings = require("./Settings");
+const Settings = require("./settings");
 const jwt = require("jsonwebtoken");
 
 const normalizeRole = (r) => {
