@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Settings = require('./Settings');
+const Settings = require('./settings');
 const authMiddleware = require('./middleware/auth');
 
 // GET settings
