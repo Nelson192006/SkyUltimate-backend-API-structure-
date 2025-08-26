@@ -1,43 +1,26 @@
-const express = require('express');
-const router = express.Router();
-const Order = require('./order'); // root file
-const Settings = require('./settings');
-const Payout = require('./payout');
-const authMiddleware = require('./auth');
+// order.js
+const mongoose = require("mongoose");
 
-// Confirm payment
-router.patch('/:id/confirm-payment', authMiddleware, async (req, res) => {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    order.status = 'PaymentConfirmed';
-    await order.save();
-    res.json({ message: 'Payment confirmed' });
-});
+const orderSchema = new mongoose.Schema(
+  {
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
+    agent: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+    itemType: { type: String, required: true },
+    weight: { type: Number, required: true },
+    pickupAddress: { type: String, required: true },
+    deliveryAddress: { type: String, required: true },
+    pricePaid: { type: Number, default: 0 },
+    agentRevenue: { type: Number, default: 0 },
+    status: {
+      type: String,
+      enum: ["PendingPaymentConfirmation", "PaymentConfirmed", "PickedUp", "Delivered", "Cancelled"],
+      default: "PendingPaymentConfirmation",
+    },
+    paymentConfirmedAt: { type: Date },
+    pickedUpAt: { type: Date },
+    deliveredAt: { type: Date },
+  },
+  { timestamps: true }
+);
 
-// Confirm pickup
-router.patch('/:id/confirm-pickup', authMiddleware, async (req, res) => {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    order.status = 'PickedUp';
-    await order.save();
-    res.json({ message: 'Pickup confirmed' });
-});
-
-// Confirm delivery
-router.patch('/:id/confirm-delivery', authMiddleware, async (req, res) => {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-
-    const settings = await Settings.get();
-    order.status = 'Delivered';
-    order.agentRevenue = order.pricePaid * settings.commissionRateAgent;
-    await order.save();
-
-    if (order.agent) {
-        await Payout.create({ agent: order.agent, amount: order.agentRevenue });
-    }
-
-    res.json({ message: 'Delivery confirmed', agentRevenue: order.agentRevenue });
-});
-
-module.exports = router;
+module.exports = mongoose.model("order", orderSchema);
