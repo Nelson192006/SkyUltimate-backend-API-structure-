@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const announcement = require('./announcementModel'); // lowercase
+const Announcement = require('./announcementModel'); // lowercase
 const authMiddleware = require('./middleware/auth');
 
 // Create announcement
@@ -16,4 +16,4 @@ router.get('/', authMiddleware, async (req, res) => {
     res.json(announcements);
 });
 
-module.exports = routerAnnouncementnnouncement
+module.exports = router;
