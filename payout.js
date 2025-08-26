@@ -1,17 +1,13 @@
-const express = require('express');
-const router = express.Router();
-const Payout = require('./payout');
-const authMiddleware = require('./auth');
+const mongoose = require("mongoose");
 
-router.post('/', authMiddleware, async (req, res) => {
-    const { agent, amount } = req.body;
-    const payout = await Payout.create({ agent, amount });
-    res.json(payout);
-});
+const payoutSchema = new mongoose.Schema(
+  {
+    agent: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
+    amount: { type: Number, required: true },
+    isPaid: { type: Boolean, default: false },
+    paidAt: { type: Date },
+  },
+  { timestamps: true }
+);
 
-router.get('/', authMiddleware, async (req, res) => {
-    const payouts = await Payout.find();
-    res.json(payouts);
-});
-
-module.exports = router;
+module.exports = mongoose.model("payout", payoutSchema);
