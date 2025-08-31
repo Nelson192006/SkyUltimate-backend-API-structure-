@@ -1,38 +1,38 @@
-const express= require("express");
+const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
+require("dotenv").config();
 
-dotenv.config();
-
-const userRoutes = require("./userroutes");
-const orderRoutes = require("./order");
-const payoutRoutes = require("./payout");
-const announcementRoutes = require("./announcement");
-const adminRequestRoutes = require("./adminRequest");
+const authRoutes = require("./authroutes");
+const adminRoutes = require("./adminroutes");
+const superAdminRoutes = require("./superadminroutes");
+const orderRoutes = require("./orderroutes");
 
 const app = express();
 
-app.use(express.json());
+// Middleware
 app.use(cors());
+app.use(express.json());
 
-app.use("/api/users", userRoutes);
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/payouts", payoutRoutes);
-app.use("/api/announcements", announcementRoutes);
-app.use("/api/admin-requests", adminRequestRoutes);
 
+// Root
 app.get("/", (req, res) => {
-  res.send("SkyUltimate Delivery API is running...");
+  res.send("SkyUltimate Backend API Running ✅");
 });
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-.then(() => {
-    console.log("✅ MongoDB connected");
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 })
-.catch((error) => {
-    console.error("❌ MongoDB connection error:", error.message);
-    process.exit(1);
-});
+.then(() => console.log("✅ MongoDB connected"))
+.catch((err) => console.error("❌ MongoDB connection error:", err));
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
