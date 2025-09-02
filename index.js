@@ -8,7 +8,7 @@ const authRoutes = require("./authroutes");
 const adminRoutes = require("./adminroutes");
 const superAdminRoutes = require("./superadminroutes");
 const orderRoutes = require("./orderroutes");
-const publicRoutes = require("./publicroutes"); // << add
+const publicRoutes = require("./publicroutes");
 
 const app = express();
 
@@ -17,7 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use("/api/public", publicRoutes);      // << add (flags for frontend)
+app.use("/api/public", publicRoutes);      
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/superadmin", superAdminRoutes);
@@ -28,7 +28,7 @@ app.get("/", (req, res) => {
   res.send("SkyUltimate Backend API Running ✅");
 });
 
-// Ensure unknown /api/* returns JSON (prevents HTML causing 'Unexpected token <')
+// Ensure unknown /api/* returns JSON
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ message: "Not found" });
@@ -44,8 +44,12 @@ app.use((err, req, res, next) => {
 
 // MongoDB connection
 mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("✅ MongoDB connected"))
+  .connect(process.env.MONGO_URI, {
+    dbName: "SkyUltimateDB", // ✅ Always specify your DB name here
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB connected to SkyUltimateDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // Start server
