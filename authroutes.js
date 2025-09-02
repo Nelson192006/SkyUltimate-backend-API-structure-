@@ -35,20 +35,17 @@ router.post("/register", async (req, res) => {
     let { name, email, password, role, phone } = req.body;
     role = normalizeRole(role);
 
-    // basic required fields
     if (!name || !email || !password) {
       console.log("❌ Missing required fields");
       return res.status(400).json({ message: "name, email and password are required" });
     }
 
-    // enforce unique email (case-insensitive)
     const existingEmail = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingEmail) {
       console.log("❌ Email already exists:", email);
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // enforce unique name (case-insensitive)
     const existingName = await User.findOne({
       name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
     });
@@ -57,7 +54,6 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Name already taken, use a different name" });
     }
 
-    // SuperAdmin only if first user
     if (role === "SuperAdmin") {
       const userCount = await User.countDocuments();
       if (userCount > 0) {
@@ -66,14 +62,12 @@ router.post("/register", async (req, res) => {
       }
     }
 
-    // Bank details required for Agent/Admin
     const bankDetails = getBankDetailsFromBody(req.body);
     if ((role === "Agent" || role === "Admin") && !bankDetails) {
       console.log("❌ Missing bank details for role:", role);
       return res.status(400).json({ message: "Bank details required for Agents and Admins" });
     }
 
-    // create user
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
       name: name.trim(),
@@ -92,7 +86,11 @@ router.post("/register", async (req, res) => {
     });
   } catch (err) {
     console.error("🔥 Register error:", err);
-    return res.status(500).json({ message: "Error registering user" });
+    return res.status(500).json({
+      message: "Error registering user",
+      error: err.message,
+      stack: err.stack,
+    });
   }
 });
 
@@ -107,7 +105,6 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "name and password are required" });
     }
 
-    // case-insensitive match on name
     const user = await User.findOne({
       name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
     });
@@ -142,12 +139,14 @@ router.post("/login", async (req, res) => {
       name: user.name,
       user: { id: user._id, name: user.name, role: user.role },
     });
-   } catch (err) {
-  console.error("Register error:", err);  // shows in Render logs
-  return res.status(500).json({ 
-    message: "Error registering user", 
-    error: err.message, 
-    stack: err.stack 
-  });
-}
+  } catch (err) {
+    console.error("🔥 Login error:", err);
+    return res.status(500).json({
+      message: "Error logging in",
+      error: err.message,
+      stack: err.stack,
+    });
+  }
+});
+
 module.exports = router;
