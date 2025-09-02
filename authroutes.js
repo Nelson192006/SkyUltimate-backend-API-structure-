@@ -142,10 +142,12 @@ router.post("/login", async (req, res) => {
       name: user.name,
       user: { id: user._id, name: user.name, role: user.role },
     });
-  } catch (err) {
-    console.error("🔥 Login error:", err);
-    return res.status(500).json({ message: "Error logging in" });
-  }
-});
-
+   } catch (err) {
+  console.error("Register error:", err);  // shows in Render logs
+  return res.status(500).json({ 
+    message: "Error registering user", 
+    error: err.message, 
+    stack: err.stack 
+  });
+}
 module.exports = router;
