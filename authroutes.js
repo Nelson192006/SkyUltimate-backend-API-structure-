@@ -29,11 +29,13 @@ const getBankDetailsFromBody = (body = {}) => {
 
 // ======================== REGISTER ========================
 router.post("/register", async (req, res) => {
+  console.log("➡️ Register endpoint hit! Body:", req.body);
   try {
-    console.log("➡️ Register request:", req.body);
-
     let { name, email, password, role, phone } = req.body;
+    console.log("📌 Step 1: Extracted fields:", { name, email, role, phone });
+
     role = normalizeRole(role);
+    console.log("📌 Step 2: Normalized role:", role);
 
     if (!name || !email || !password) {
       console.log("❌ Missing required fields");
@@ -41,34 +43,39 @@ router.post("/register", async (req, res) => {
     }
 
     const existingEmail = await User.findOne({ email: email.toLowerCase().trim() });
+    console.log("📌 Step 3: Existing email check:", existingEmail ? "FOUND" : "NOT FOUND");
+
     if (existingEmail) {
-      console.log("❌ Email already exists:", email);
       return res.status(400).json({ message: "User already exists" });
     }
 
     const existingName = await User.findOne({
-      name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+      name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
     });
+    console.log("📌 Step 4: Existing name check:", existingName ? "FOUND" : "NOT FOUND");
+
     if (existingName) {
-      console.log("❌ Name already taken:", name);
       return res.status(400).json({ message: "Name already taken, use a different name" });
     }
 
     if (role === "SuperAdmin") {
       const userCount = await User.countDocuments();
+      console.log("📌 Step 5: User count (for SuperAdmin check):", userCount);
       if (userCount > 0) {
-        console.log("❌ SuperAdmin registration blocked - already exists");
         return res.status(403).json({ message: "SuperAdmin can only be created for the first registration" });
       }
     }
 
     const bankDetails = getBankDetailsFromBody(req.body);
+    console.log("📌 Step 6: Bank details:", bankDetails);
+
     if ((role === "Agent" || role === "Admin") && !bankDetails) {
-      console.log("❌ Missing bank details for role:", role);
       return res.status(400).json({ message: "Bank details required for Agents and Admins" });
     }
 
     const hashed = await bcrypt.hash(password, 10);
+    console.log("📌 Step 7: Password hashed");
+
     const user = await User.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
@@ -77,8 +84,7 @@ router.post("/register", async (req, res) => {
       phone,
       bankDetails,
     });
-
-    console.log("✅ User registered:", { id: user._id, role: user.role, name: user.name });
+    console.log("✅ Step 8: User created:", { id: user._id, role: user.role, name: user.name });
 
     return res.status(201).json({
       message: "Registered. Please login.",
@@ -96,31 +102,32 @@ router.post("/register", async (req, res) => {
 
 // ======================== LOGIN ========================
 router.post("/login", async (req, res) => {
+  console.log("➡️ Login endpoint hit! Body:", req.body);
   try {
-    console.log("➡️ Login request:", req.body);
-
     const { name, password } = req.body;
+    console.log("📌 Step 1: Extracted login fields:", { name });
+
     if (!name || !password) {
-      console.log("❌ Missing login fields");
       return res.status(400).json({ message: "name and password are required" });
     }
 
     const user = await User.findOne({
-      name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+      name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
     });
+    console.log("📌 Step 2: User lookup result:", user ? "FOUND" : "NOT FOUND");
 
     if (!user) {
-      console.log("❌ User not found:", name);
       return res.status(400).json({ message: "Invalid name or password" });
     }
+
     if (user.isSuspended) {
-      console.log("⚠️ Suspended account login attempt:", name);
       return res.status(403).json({ message: "Account suspended" });
     }
 
     const ok = await bcrypt.compare(password, user.password);
+    console.log("📌 Step 3: Password match:", ok);
+
     if (!ok) {
-      console.log("❌ Wrong password for user:", name);
       return res.status(400).json({ message: "Invalid name or password" });
     }
 
@@ -129,8 +136,7 @@ router.post("/login", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-
-    console.log("✅ User logged in:", { id: user._id, role: user.role, name: user.name });
+    console.log("✅ Step 4: Token generated for user:", user.name);
 
     return res.json({
       message: "Login successful",
