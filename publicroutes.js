@@ -1,8 +1,8 @@
-// publicRoutes.js
+SettingstingspublicRoutes.js
 const express = require("express");
 const router = express.Router();
-const Settings = require("./Settings");
-const User = require("./User");
+const Settings = require("./settings");
+const User = require("./user");
 
 // front-end uses this to decide which roles to show
 router.get("/flags", async (req, res) => {
