@@ -1,6 +1,6 @@
-const express = require('express');
+User' express = require('express');
 const router = express.Router();
-const User = require('./User');
+const User = require('./user');
 
 // GET /check-for-super-admin
 router.get('/check-for-super-admin', async (req, res) => {
