@@ -1,4 +1,4 @@
-const express = publicRoutes.js
+// publicroutes.js
 const express = require("express");
 const router = express.Router();
 const Settings = require("./settings");
@@ -6,12 +6,18 @@ const User = require("./user");
 
 // front-end uses this to decide which roles to show
 router.get("/flags", async (req, res) => {
-  const settings = await Settings.get();
-  const userCount = await User.countDocuments();
-  res.json({
-    adminRegistrationEnabled: settings.adminRegistrationEnabled,
-    allowSuperAdminRegistration: userCount === 0,
-  });
+  try {
+    const settings = await Settings.get();
+    const userCount = await User.countDocuments();
+
+    res.json({
+      adminRegistrationEnabled: settings.adminRegistrationEnabled,
+      allowSuperAdminRegistration: userCount === 0,
+    });
+  } catch (err) {
+    console.error("flags error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // content for About/Mission/Vision/FAQ
@@ -28,7 +34,7 @@ router.get("/content", async (req, res) => {
       { q: "What are your delivery hours?", a: "9:00 AM to 6:00 PM, Monday–Saturday. Contact support for urgent after-hours." },
       { q: "What items can you deliver?", a: "Documents, parcels, general goods. No hazardous/illegal items or live animals." },
       { q: "What if my package is lost or damaged?", a: "Contact support immediately. We will investigate and work on a solution." },
-      { q: "How can I contact support?", a: "Phone, email, or live chat on the website (see Contact Us page)." },
+      { q: "How can I contact support?", a: "Phone, email, or chat on the website (see Contact Us page)." },
     ],
   });
 });
