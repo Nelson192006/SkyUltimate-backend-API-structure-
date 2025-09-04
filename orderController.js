@@ -1,6 +1,6 @@
 // orderController.js
 const Order = require("./orderModel");
-const User = require("./User");
+const User = require("./user");
 const Settings = require("./settings");
 
 // simple price helper (replace with your real logic)
