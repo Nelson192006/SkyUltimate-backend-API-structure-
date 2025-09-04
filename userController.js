@@ -1,5 +1,5 @@
 // userController.js
-const User = require("./User");
+const User = require("./user");
 const Settings = require("./settings");
 const jwt = require("jsonwebtoken");
 
