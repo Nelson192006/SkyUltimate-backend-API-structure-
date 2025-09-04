@@ -22,12 +22,12 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/orders", orderRoutes);
 
-// Health check
+// Health
 app.get("/", (req, res) => {
   res.send("SkyUltimate Backend API Running ✅");
 });
 
-// Ensure unknown /api/* returns JSON
+// Ensure unknown /api/* returns JSON (prevents HTML responses)
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ message: "Not found" });
@@ -41,14 +41,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Server error", error: err.message });
 });
 
-// MongoDB connection (use lowercase db name!)
+// MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI, {
-    dbName: "skyultimatedb", // ✅ FIXED: lowercase
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("✅ MongoDB connected to skyultimatedb"))
+  .then(() => console.log("✅ MongoDB connected to skyultimateDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 const PORT = process.env.PORT || 5000;
