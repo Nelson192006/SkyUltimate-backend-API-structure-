@@ -40,13 +40,15 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({ name, email, password, role });
+
     return res.status(201).json({
       message: "Registered",
       user: { _id: user.id, name: user.name, email: user.email, role: user.role },
       token: generateToken(user.id, user.role),
     });
   } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+    console.error("Registration error:", e); // shows in Render logs
+    return res.status(500).json({ message: e.message || "Server error" });
   }
 };
 
@@ -71,38 +73,66 @@ const loginUser = async (req, res) => {
       token: generateToken(user.id, user.role),
     });
   } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+    console.error("Login error:", e);
+    return res.status(500).json({ message: e.message || "Server error" });
   }
 };
 
 // GET /api/users/profile
 const getProfile = async (req, res) => {
-  const user = await User.findById(req.user.id).select("-password");
-  if (!user) return res.status(404).json({ message: "User not found" });
-  res.json(user);
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (e) {
+    console.error("Get profile error:", e);
+    return res.status(500).json({ message: e.message || "Server error" });
+  }
 };
 
 // PUT /api/users/me/bank
 const updateMyBank = async (req, res) => {
-  const { bankName, accountNumber, accountHolderName, phone } = req.body || {};
-  const user = await User.findById(req.user.id);
-  if (!user) return res.status(404).json({ message: "User not found" });
+  try {
+    const { bankName, accountNumber, accountHolderName, phone } = req.body || {};
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-  if (bankName || accountNumber || accountHolderName) {
-    user.bankDetails = { bankName, accountNumber, accountHolderName };
+    if (bankName || accountNumber || accountHolderName) {
+      user.bankDetails = { bankName, accountNumber, accountHolderName };
+    }
+    if (phone) user.phone = phone;
+
+    await user.save();
+    res.json({ message: "Profile updated" });
+  } catch (e) {
+    console.error("Update bank error:", e);
+    return res.status(500).json({ message: e.message || "Server error" });
   }
-  if (phone) user.phone = phone;
-
-  await user.save();
-  res.json({ message: "Profile updated" });
 };
 
 // PUT /api/users/agent/availability
 const setAgentAvailability = async (req, res) => {
-  if (req.user.role !== "Agent") return res.status(403).json({ message: "Only agents can toggle availability" });
-  const { online } = req.body;
-  const updated = await User.findByIdAndUpdate(req.user.id, { isAvailable: !!online }, { new: true });
-  res.json({ online: updated.isAvailable });
+  try {
+    if (req.user.role !== "Agent")
+      return res.status(403).json({ message: "Only agents can toggle availability" });
+
+    const { online } = req.body;
+    const updated = await User.findByIdAndUpdate(
+      req.user.id,
+      { isAvailable: !!online },
+      { new: true }
+    );
+    res.json({ online: updated.isAvailable });
+  } catch (e) {
+    console.error("Agent availability error:", e);
+    return res.status(500).json({ message: e.message || "Server error" });
+  }
 };
 
-module.exports = { registerUser, loginUser, getProfile, updateMyBank, setAgentAvailability };
+module.exports = {
+  registerUser,
+  loginUser,
+  getProfile,
+  updateMyBank,
+  setAgentAvailability,
+};
