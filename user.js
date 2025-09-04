@@ -1,4 +1,4 @@
-// user.js
+// models/User.js
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
@@ -44,4 +44,4 @@ userSchema.methods.matchPassword = function (entered) {
   return bcrypt.compare(entered, this.password);
 };
 
-module.exports = mongoose.models.User || mongoose.model("User", userSchema);
+module.exports = mongoose.model("User", userSchema);
