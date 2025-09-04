@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const User = require('./User');
+const User = require('./user');
 const authMiddleware = require('./middleware/auth');
 
 // GET all users (Super Admin only)
