@@ -8,7 +8,7 @@ const authRoutes = require("./authroutes");
 const adminRoutes = require("./adminroutes");
 const superAdminRoutes = require("./superadminroutes");
 const orderRoutes = require("./orderroutes");
-const publicRoutes = require("./publicroutes");
+const publicRoutes = require("./publicRoutes");
 
 const app = express();
 
