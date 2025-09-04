@@ -1,4 +1,4 @@
-publicRoutesblicRoutes index.js
+// index.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -8,7 +8,7 @@ const authRoutes = require("./authroutes");
 const adminRoutes = require("./adminroutes");
 const superAdminRoutes = require("./superadminroutes");
 const orderRoutes = require("./orderroutes");
-const publicRoutes= require("./publicroutes");
+const publicRoutes = require("./publicroutes");
 
 const app = express();
 
