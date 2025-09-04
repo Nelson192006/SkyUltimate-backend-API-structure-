@@ -1,8 +1,8 @@
 // authMiddleware.js
 const jwt = require("jsonwebtoken");
-const User = require("./User");
+const User = require("./user");
 
-const protect = async (req, res, next) => {
+const protect = async (User, res, next) => {
   let token = null;
 
   if (req.headers.authorization?.startsWith("Bearer ")) {
