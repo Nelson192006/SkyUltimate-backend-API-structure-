@@ -2,11 +2,11 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const User = require("./user");
+const User = require("./user"); // make sure there is exactly one user.js in root (lowercase)
 
 const router = express.Router();
 
-// Normalize roles
+// normalize incoming role to canonical capitalization used in DB
 const normalizeRole = (role) => {
   if (!role) return "Customer";
   const s = String(role).toLowerCase().replace(/[\s_-]+/g, "");
@@ -17,7 +17,6 @@ const normalizeRole = (role) => {
   return "Customer";
 };
 
-// Extract bank details
 const getBankDetailsFromBody = (body = {}) => {
   if (body.bankDetails && typeof body.bankDetails === "object") return body.bankDetails;
   const { bankName, accountNumber, accountHolderName } = body;
@@ -27,130 +26,128 @@ const getBankDetailsFromBody = (body = {}) => {
   return undefined;
 };
 
+// helper to create JWT
+const makeToken = (user) => {
+  return jwt.sign(
+    { id: user._id, role: user.role, name: user.name },
+    process.env.JWT_SECRET,
+    { expiresIn: "30d" }
+  );
+};
+
 // ======================== REGISTER ========================
 router.post("/register", async (req, res) => {
   try {
-    console.log("➡️ Register request:", req.body);
+    console.log("➡️ /api/auth/register", req.body && { role: req.body.role, email: req.body.email, name: req.body.name });
 
-    // accept either name or fullName
-    let { name, fullName, email, password, role, phone } = req.body;
-    name = name || fullName; 
+    let { name, email, password, role, phone } = req.body || {};
     role = normalizeRole(role);
 
+    // required
     if (!name || !email || !password) {
-      console.log("❌ Missing required fields");
-      return res.status(400).json({ message: "name/fullName, email and password are required" });
+      return res.status(400).json({ message: "name, email and password are required" });
     }
 
-    const existingEmail = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingEmail) {
-      console.log("❌ Email already exists:", email);
-      return res.status(400).json({ message: "User already exists" });
-    }
+    // normalize values
+    email = String(email).toLowerCase().trim();
+    name = String(name).trim();
 
+    // ensure unique email
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) return res.status(409).json({ message: "User already exists" });
+
+    // ensure name uniqueness (case-insensitive)
     const existingName = await User.findOne({
-      name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+      name: { $regex: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
     });
-    if (existingName) {
-      console.log("❌ Name already taken:", name);
-      return res.status(400).json({ message: "Name already taken, use a different name" });
-    }
+    if (existingName) return res.status(409).json({ message: "Name already taken, use a different name" });
 
+    // SuperAdmin can only be created if no users exist
     if (role === "SuperAdmin") {
-      const userCount = await User.countDocuments();
-      if (userCount > 0) {
-        console.log("❌ SuperAdmin registration blocked - already exists");
+      const count = await User.countDocuments();
+      if (count > 0) {
         return res.status(403).json({ message: "SuperAdmin can only be created for the first registration" });
       }
     }
 
+    // bank details required for Agent/Admin
     const bankDetails = getBankDetailsFromBody(req.body);
     if ((role === "Agent" || role === "Admin") && !bankDetails) {
-      console.log("❌ Missing bank details for role:", role);
       return res.status(400).json({ message: "Bank details required for Agents and Admins" });
     }
 
+    // create user (bcrypt)
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name,
+      email,
       password: hashed,
       role,
       phone,
       bankDetails,
     });
 
-    console.log("✅ User registered:", { id: user._id, role: user.role, name: user.name });
+    console.log("✅ User registered:", { id: user._id.toString(), name: user.name, role: user.role });
 
     return res.status(201).json({
       message: "Registered. Please login.",
       user: { id: user._id, name: user.name, role: user.role },
+      token: makeToken(user),
     });
   } catch (err) {
-    console.error("🔥 Register error:", err);
-    return res.status(500).json({
-      message: "Error registering user",
-      error: err.message,
-      stack: err.stack,
-    });
+    console.error("🔥 Register error:", err && (err.stack || err.message || err));
+    return res.status(500).json({ message: "Error registering user" });
   }
 });
 
 // ======================== LOGIN ========================
 router.post("/login", async (req, res) => {
   try {
-    console.log("➡️ Login request:", req.body);
+    console.log("➡️ /api/auth/login", req.body && { email: req.body.email, name: req.body.name });
 
-    // accept either name or fullName
-    const { name, fullName, password } = req.body;
-    const loginName = name || fullName;
-
-    if (!loginName || !password) {
-      console.log("❌ Missing login fields");
-      return res.status(400).json({ message: "name/fullName and password are required" });
+    const { email, name, password } = req.body || {};
+    if (!password || (!email && !name)) {
+      return res.status(400).json({ message: "email or name, and password are required" });
     }
 
-    const user = await User.findOne({
-      name: { $regex: new RegExp(`^${loginName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
-    });
+    // decide whether we search by email or name
+    let user = null;
+    if (email && String(email).includes("@")) {
+      user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    } else if (name) {
+      // case-insensitive exact match on full name
+      const cleaned = String(name).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      user = await User.findOne({ name: { $regex: new RegExp(`^${cleaned}$`, "i") } });
+    } else {
+      return res.status(400).json({ message: "Invalid login parameters" });
+    }
 
     if (!user) {
-      console.log("❌ User not found:", loginName);
-      return res.status(400).json({ message: "Invalid name or password" });
+      console.log("❌ Login: user not found");
+      return res.status(401).json({ message: "Invalid name or password" });
     }
     if (user.isSuspended) {
-      console.log("⚠️ Suspended account login attempt:", loginName);
+      console.log("⚠️ Suspended account login attempt:", user.name);
       return res.status(403).json({ message: "Account suspended" });
     }
 
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) {
-      console.log("❌ Wrong password for user:", loginName);
-      return res.status(400).json({ message: "Invalid name or password" });
+      console.log("❌ Wrong password for user:", user.name);
+      return res.status(401).json({ message: "Invalid name or password" });
     }
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role, name: user.name },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    console.log("✅ User logged in:", { id: user._id, role: user.role, name: user.name });
+    const token = makeToken(user);
+    console.log("✅ Login success:", { id: user._id.toString(), name: user.name, role: user.role });
 
     return res.json({
       message: "Login successful",
       token,
-      role: user.role,
-      name: user.name,
-      user: { id: user._id, name: user.name, role: user.role },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
-    console.error("🔥 Login error:", err);
-    return res.status(500).json({
-      message: "Error logging in",
-      error: err.message,
-      stack: err.stack,
-    });
+    console.error("🔥 Login error:", err && (err.stack || err.message || err));
+    return res.status(500).json({ message: "Error logging in" });
   }
 });
 
