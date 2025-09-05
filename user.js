@@ -1,4 +1,4 @@
-// models/User.js
+// user.js
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
@@ -23,6 +23,9 @@ const userSchema = new mongoose.Schema(
     ratingAverage: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     pendingPayout: { type: Number, default: 0 },
+    // reset token fields (optional for forgot flow)
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );
@@ -44,4 +47,4 @@ userSchema.methods.matchPassword = function (entered) {
   return bcrypt.compare(entered, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);
