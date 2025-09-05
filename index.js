@@ -22,12 +22,12 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/orders", orderRoutes);
 
-// Health
+// Health check
 app.get("/", (req, res) => {
   res.send("SkyUltimate Backend API Running ✅");
 });
 
-// Ensure unknown /api/* returns JSON (prevents HTML responses)
+// Ensure unknown /api/* returns JSON
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ message: "Not found" });
@@ -35,7 +35,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Global error handler (JSON only)
+// Global error handler
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ message: "Server error", error: err.message });
