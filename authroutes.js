@@ -2,18 +2,18 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const User = require("./user"); // make sure there is exactly one user.js in root (lowercase)
+const User = require("./user"); // ensure single user.js in root (lowercase)
 
 const router = express.Router();
 
-// normalize incoming role to canonical capitalization used in DB
+// Normalize role to canonical capitalization used in DB
 const normalizeRole = (role) => {
   if (!role) return "Customer";
   const s = String(role).toLowerCase().replace(/[\s_-]+/g, "");
   if (s === "customer") return "Customer";
   if (s === "agent") return "Agent";
   if (s === "admin") return "Admin";
-  if (s === "superadmin") return "SuperAdmin";
+  if (s === "superadmin" || s === "super-admin" || s === "super_admin") return "SuperAdmin";
   return "Customer";
 };
 
@@ -26,7 +26,6 @@ const getBankDetailsFromBody = (body = {}) => {
   return undefined;
 };
 
-// helper to create JWT
 const makeToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role, name: user.name },
@@ -38,31 +37,34 @@ const makeToken = (user) => {
 // ======================== REGISTER ========================
 router.post("/register", async (req, res) => {
   try {
-    console.log("➡️ /api/auth/register", req.body && { role: req.body.role, email: req.body.email, name: req.body.name });
+    console.log("➡️ /api/auth/register", {
+      role: req.body?.role,
+      email: req.body?.email,
+      name: req.body?.name || req.body?.fullName,
+    });
 
-    let { name, email, password, role, phone } = req.body || {};
+    let { name, fullName, email, password, role, phone } = req.body || {};
+    name = name || fullName;
     role = normalizeRole(role);
 
-    // required
     if (!name || !email || !password) {
       return res.status(400).json({ message: "name, email and password are required" });
     }
 
-    // normalize values
     email = String(email).toLowerCase().trim();
     name = String(name).trim();
 
-    // ensure unique email
+    // unique email
     const existingEmail = await User.findOne({ email });
     if (existingEmail) return res.status(409).json({ message: "User already exists" });
 
-    // ensure name uniqueness (case-insensitive)
+    // unique name (case-insensitive)
     const existingName = await User.findOne({
       name: { $regex: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
     });
     if (existingName) return res.status(409).json({ message: "Name already taken, use a different name" });
 
-    // SuperAdmin can only be created if no users exist
+    // SuperAdmin only if no users exist
     if (role === "SuperAdmin") {
       const count = await User.countDocuments();
       if (count > 0) {
@@ -76,7 +78,6 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Bank details required for Agents and Admins" });
     }
 
-    // create user (bcrypt)
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
       name,
@@ -89,9 +90,10 @@ router.post("/register", async (req, res) => {
 
     console.log("✅ User registered:", { id: user._id.toString(), name: user.name, role: user.role });
 
+    // return token + user to simplify frontend flows
     return res.status(201).json({
       message: "Registered. Please login.",
-      user: { id: user._id, name: user.name, role: user.role },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
       token: makeToken(user),
     });
   } catch (err) {
@@ -103,20 +105,20 @@ router.post("/register", async (req, res) => {
 // ======================== LOGIN ========================
 router.post("/login", async (req, res) => {
   try {
-    console.log("➡️ /api/auth/login", req.body && { email: req.body.email, name: req.body.name });
+    console.log("➡️ /api/auth/login", { email: req.body?.email, name: req.body?.name || req.body?.fullName });
 
-    const { email, name, password } = req.body || {};
-    if (!password || (!email && !name)) {
+    const { email, name, fullName, password } = req.body || {};
+    const loginName = name || fullName;
+
+    if (!password || (!email && !loginName)) {
       return res.status(400).json({ message: "email or name, and password are required" });
     }
 
-    // decide whether we search by email or name
     let user = null;
     if (email && String(email).includes("@")) {
       user = await User.findOne({ email: String(email).toLowerCase().trim() });
-    } else if (name) {
-      // case-insensitive exact match on full name
-      const cleaned = String(name).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    } else if (loginName) {
+      const cleaned = String(loginName).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       user = await User.findOne({ name: { $regex: new RegExp(`^${cleaned}$`, "i") } });
     } else {
       return res.status(400).json({ message: "Invalid login parameters" });
